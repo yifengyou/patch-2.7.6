@@ -1,0 +1,58 @@
+diff -up patch-2.7.6/.me.orig patch-2.7.6/.me
+diff -up patch-2.7.6/src/common.h.orig patch-2.7.6/src/common.h
+--- patch-2.7.6/src/common.h.orig	2018-06-18 17:20:49.661363500 +0200
++++ patch-2.7.6/src/common.h	2018-06-18 17:22:21.505841527 +0200
+@@ -221,3 +221,11 @@ bool merge_hunk (int hunk, struct outsta
+ #else
+ # define merge_hunk(hunk, outstate, where, somefailed) false
+ #endif
++
++#ifndef FALLTHROUGH
++# if __GNUC__ < 7
++#  define FALLTHROUGH ((void) 0)
++# else
++#  define FALLTHROUGH __attribute__ ((__fallthrough__))
++# endif
++#endif
+diff -up patch-2.7.6/src/patch.c.orig patch-2.7.6/src/patch.c
+--- patch-2.7.6/src/patch.c.orig	2018-06-18 17:20:49.662363506 +0200
++++ patch-2.7.6/src/patch.c	2018-06-18 17:22:21.507841538 +0200
+@@ -1381,7 +1381,7 @@ abort_hunk_context (bool header, bool re
+ 	    break;
+ 	case ' ': case '-': case '+': case '!':
+ 	    fprintf (rejfp, "%c ", pch_char (i));
+-	    /* fall into */
++	    FALLTHROUGH;
+ 	case '\n':
+ 	    pch_write_line (i, rejfp);
+ 	    break;
+diff -up patch-2.7.6/src/pch.c.orig patch-2.7.6/src/pch.c
+--- patch-2.7.6/src/pch.c.orig	2018-06-18 17:20:49.662363506 +0200
++++ patch-2.7.6/src/pch.c	2018-06-18 17:24:00.694357762 +0200
+@@ -1742,7 +1742,7 @@ another_hunk (enum diff difftype, bool r
+ 		break;
+ 	    case '=':
+ 		ch = ' ';
+-		/* FALL THROUGH */
++		FALLTHROUGH;
+ 	    case ' ':
+ 		if (fillsrc > p_ptrn_lines) {
+ 		    free(s);
+@@ -1763,7 +1763,7 @@ another_hunk (enum diff difftype, bool r
+ 		    p_end = fillsrc-1;
+ 		    return -1;
+ 		}
+-		/* FALL THROUGH */
++		FALLTHROUGH;
+ 	    case '+':
+ 		if (filldst > p_end) {
+ 		    free(s);
+@@ -2401,7 +2401,7 @@ do_ed_script (char const *inname, char c
+     size_t chars_read;
+     FILE *tmpfp = 0;
+     char const *tmpname;
+-    int tmpfd;
++    int tmpfd = -1; /* placate gcc's -Wmaybe-uninitialized */
+     pid_t pid;
+ 
+     if (! dry_run && ! skip_rest_of_patch)
